@@ -6,6 +6,7 @@ using SallesWebMvc.Services;
 using SallesWebMvc.Services.Exceptions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -45,24 +46,24 @@ namespace SallesWebMvc.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public IActionResult Delete (int? id)
+        public IActionResult Delete(int? id)
         {
             if (id == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not provided" });
             }
 
             var obj = _sellerService.FindById(id.Value);
-            if(obj == null)
+            if (obj == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not found" });
             }
 
             return View(obj);
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Delete (int id)
+        public IActionResult Delete(int id)
         {
             _sellerService.Remove(id);
             return RedirectToAction(nameof(Index));
@@ -73,13 +74,13 @@ namespace SallesWebMvc.Controllers
         {
             if (id == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not provided" });
             }
 
             var obj = _sellerService.FindById(id.Value);
             if (obj == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not found" });
             }
 
             return View(obj);
@@ -87,15 +88,15 @@ namespace SallesWebMvc.Controllers
 
         public IActionResult Edit(int? id)
         {
-            if(id == null)
+            if (id == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not provided" });
             }
 
             var obj = _sellerService.FindById(id.Value);
             if (obj == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not found" });
             }
 
             List<Department> departments = _departmentService.FindAll();
@@ -107,9 +108,9 @@ namespace SallesWebMvc.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Edit(int id, Seller seller)
         {
-            if(id != seller.Id)
+            if (id != seller.Id)
             {
-                return BadRequest();
+                return RedirectToAction(nameof(Error), new { message = "Id mismatch" });
             }
 
             try
@@ -117,16 +118,31 @@ namespace SallesWebMvc.Controllers
                 _sellerService.Update(seller);
                 return RedirectToAction(nameof(Index));
             }
-            catch (NotFoundException)
+            catch (ApplicationException e) // super tipo das duas exceções
             {
 
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = e.Message });
             }
-            catch (DbConcurrencyException)
+            /*catch (NotFoundException e)
             {
-                return BadRequest();
+
+                return RedirectToAction(nameof(Error), new { message = e.Message });
             }
-          
+            catch (DbConcurrencyException e)
+            {
+                RedirectToAction(nameof(Error), new { message = e.Message});
+            } */
+        }
+
+        public IActionResult Error(string message)
+        {
+            var viewModel = new ErrorViewModel
+            {
+                Message = message,
+                RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
+            };
+
+            return View(viewModel);
 
         }
     }
